@@ -1,0 +1,10 @@
+services:
+  media-api:
+    build: .
+    ports:
+      - "6567:6567"
+    environment:
+      - API_KEYS=${API_KEYS}
+      - MEDIA_ROOT=/media
+    volumes:
+      - ${MEDIA_ROOT:-/files}:/media:ro
