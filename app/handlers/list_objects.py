@@ -12,12 +12,15 @@ async def list_objects(path: str = "", recursive: bool = False) -> list[dict[str
     if not target.exists():
         raise HTTPException(status_code=404, detail="Not found")
 
+    items = sorted(target.rglob("*") if recursive else target.iterdir())
     entries: list[dict[str, Any]] = []
-    if recursive:
-        for item in sorted(target.rglob("*")):
-            entries.append(storage._make_entry(item))
-    else:
-        for item in sorted(target.iterdir()):
-            entries.append(storage._make_entry(item))
-
+    for item in items:
+        if item.name.endswith(".json"):
+            continue
+        entry = storage._make_entry(item)
+        if item.is_file():
+            probe = storage.read_ffprobe_sidecar(item)
+            if probe is not None:
+                entry["ffprobe_response"] = probe
+        entries.append(entry)
     return entries

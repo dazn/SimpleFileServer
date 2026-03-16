@@ -7,4 +7,5 @@ services:
       - API_KEYS=${API_KEYS}
       - MEDIA_ROOT=/media
     volumes:
-      - ${MEDIA_ROOT:-/files}:/media:ro
+      - ${MEDIA_ROOT:-./files}:/media
+      - ./certs:/certs:ro

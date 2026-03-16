@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -26,6 +27,8 @@ def media_dir(tmp_path: Path) -> Path:
     subdir = tmp_path / "subdir"
     subdir.mkdir()
     (subdir / "file2.mp4").write_bytes(b"\x00" * 100)
+    sidecar_data = {"streams": [{"codec_type": "video"}], "format": {"filename": str(subdir / "file2.mp4")}}
+    (subdir / "file2.mp4.json").write_text(json.dumps(sidecar_data))
     return tmp_path
 
 
@@ -253,3 +256,40 @@ def test_stream_format_absent_for_text_in_magic_dir(magic_client: TestClient) ->
     assert r.status_code == 200
     files = {e["path"]: e for e in r.json() if e["type"] == "file"}
     assert "streamFormat" not in files["file1.txt"]
+
+
+# ─── ffprobe_response field ───────────────────────────────────────────────────
+
+def test_ffprobe_response_present_when_sidecar_exists(client: TestClient) -> None:
+    r = client.get("/objects/?recursive=true", headers=AUTH)
+    assert r.status_code == 200
+    files = {e["path"]: e for e in r.json() if e["type"] == "file"}
+    # file2.mp4 has a pre-created sidecar
+    assert "ffprobe_response" in files["subdir/file2.mp4"]
+    assert files["subdir/file2.mp4"]["ffprobe_response"]["streams"][0]["codec_type"] == "video"
+
+
+def test_ffprobe_response_absent_for_non_media(client: TestClient) -> None:
+    # file1.txt has no sidecar pre-created and ffprobe won't recognise it
+    r = client.get("/objects/", headers=AUTH)
+    assert r.status_code == 200
+    files = {e["path"]: e for e in r.json() if e["type"] == "file"}
+    # txt file has no sidecar — ffprobe_response should be absent
+    assert "ffprobe_response" not in files["file1.txt"]
+
+
+def test_sidecar_json_files_excluded_from_listing(client: TestClient) -> None:
+    r = client.get("/objects/?recursive=true", headers=AUTH)
+    assert r.status_code == 200
+    paths = {e["path"] for e in r.json()}
+    # No .json file should appear in the listing
+    assert not any(p.endswith(".json") for p in paths)
+
+
+def test_directory_entries_have_no_ffprobe_response(client: TestClient) -> None:
+    r = client.get("/objects/", headers=AUTH)
+    assert r.status_code == 200
+    dirs = [e for e in r.json() if e["type"] == "directory"]
+    assert len(dirs) > 0
+    for d in dirs:
+        assert "ffprobe_response" not in d

@@ -1,3 +1,5 @@
+import asyncio
+import json
 import mimetypes
 import os
 from pathlib import Path
@@ -84,3 +86,31 @@ def _iter_file(path: Path, start: int, end: int) -> Any:
                 break
             remaining -= len(chunk)
             yield chunk
+
+
+def read_ffprobe_sidecar(path: Path) -> dict[str, Any] | None:
+    sidecar = path.parent / (path.name + ".json")
+    try:
+        data = json.loads(sidecar.read_text())
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+async def _probe_and_cache(path: Path) -> dict[str, Any] | None:
+    sidecar = path.parent / (path.name + ".json")
+    proc = await asyncio.create_subprocess_exec(
+        "ffprobe", "-v", "quiet", "-print_format", "json",
+        "-show_format", "-show_streams", str(path),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    stdout, _ = await proc.communicate()
+    if proc.returncode != 0:
+        return None
+    try:
+        data: dict[str, Any] = json.loads(stdout)
+    except json.JSONDecodeError:
+        return None
+    sidecar.write_text(json.dumps(data))
+    return data

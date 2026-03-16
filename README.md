@@ -11,11 +11,21 @@ A FastAPI-based read-only media file server with bearer token authentication and
 
 ## Running
 
+### Generate a self-signed certificate (one-time)
+
+```bash
+bash scripts/generate_cert.sh
+```
+
+This creates `certs/cert.pem` and `certs/key.pem`. The `certs/` directory is git-ignored.
+
+### Start the server
+
 ```bash
 API_KEYS=yourtoken MEDIA_ROOT=/srv/media docker compose up
 ```
 
-The server listens on port **6567**.
+The server listens on port **6567** over **HTTPS**. Since the certificate is self-signed, clients must skip verification (e.g. `curl -k` or `--insecure`).
 
 ## Authentication
 
@@ -60,11 +70,23 @@ Unified endpoint — behaviour depends on whether the path is a directory or a f
 ```json
 [
   {"path": "movies", "type": "directory"},
-  {"path": "movies/film.mkv", "type": "file", "size": 1234567, "content_type": "video/x-matroska", "streamFormat": "mkv"}
+  {
+    "path": "movies/film.mkv",
+    "type": "file",
+    "size": 1234567,
+    "content_type": "video/x-matroska",
+    "streamFormat": "mkv",
+    "ffprobe_response": {
+      "streams": [...],
+      "format": {...}
+    }
+  }
 ]
 ```
 
 `streamFormat` is only present for recognized streamable formats (`mp4`, `mp3`, `mkv`, `mka`, `mks`, `hls`, `dash`).
+
+`ffprobe_response` is absent if the file could not be probed (e.g. not a recognised media container). The structure is the verbatim JSON output of `ffprobe -v quiet -print_format json -show_format -show_streams`. See [ffprobe documentation](https://ffmpeg.org/ffprobe.html) for the full schema.
 
 **File headers**
 
