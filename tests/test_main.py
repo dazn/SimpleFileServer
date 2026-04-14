@@ -28,3 +28,18 @@ def test_info_missing_token() -> None:
 def test_info_invalid_token() -> None:
     response = client.get("/info", headers={"Authorization": "Bearer invalid-key"})
     assert response.status_code == 401
+
+
+def test_info_cookie_auth() -> None:
+    c = TestClient(app)
+    c.cookies.set("media_api_key", "test-key-123")
+    response = c.get("/info")
+    assert response.status_code == 200
+    assert response.json() == {"message": "hello world"}
+
+
+def test_info_invalid_cookie() -> None:
+    c = TestClient(app)
+    c.cookies.set("media_api_key", "bad")
+    response = c.get("/info")
+    assert response.status_code == 401

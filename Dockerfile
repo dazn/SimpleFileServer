@@ -8,6 +8,7 @@ RUN pip install uv
 
 COPY pyproject.toml .
 COPY app/ app/
+COPY web_client/ web_client/
 
 RUN uv sync --no-dev
 

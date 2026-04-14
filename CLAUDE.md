@@ -5,6 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
+# Initialize the web_client submodule (required for /ui to serve)
+git submodule update --init --recursive
+
 # Install dependencies (including dev)
 uv sync
 
@@ -36,7 +39,9 @@ This is a read-only FastAPI media file server. Authentication uses bearer tokens
 - `app/handlers/retrieve_object.py` — file streaming with HTTP Range request support (returns 206 for partial, 416 for invalid ranges)
 - `app/storage.py` — path safety (`resolve_safe_path` prevents traversal), MIME detection, chunked file iteration (64 KiB chunks), ffprobe sidecar helpers (`read_ffprobe_sidecar`, `_probe_and_cache`)
 
-All routes require authentication. The `/objects/{path}` route handles both directories (returns JSON listing) and files (streams binary).
+All API routes require authentication. The `/objects/{path}` route handles both directories (returns JSON listing) and files (streams binary).
+
+The `web_client/` directory is a git submodule containing a static JS client mounted publicly at `/ui` (no bearer auth — the client prompts for the API key via its own modal).
 
 ## ffprobe Sidecar Cache
 

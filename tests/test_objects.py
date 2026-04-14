@@ -175,6 +175,14 @@ def test_retrieve_missing_token(client: TestClient) -> None:
     assert r.status_code == 401
 
 
+def test_retrieve_range_cookie(client: TestClient) -> None:
+    client.cookies.set("media_api_key", "test-key-123")
+    r = client.get("/objects/file1.txt", headers={"Range": "bytes=0-4"})
+    assert r.status_code == 206
+    assert r.content == b"hello"
+    assert r.headers["content-range"].startswith("bytes 0-4/")
+
+
 # ─── streamFormat field ───────────────────────────────────────────────────────
 
 def test_stream_format_absent_for_text(client: TestClient) -> None:

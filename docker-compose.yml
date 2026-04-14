@@ -1,6 +1,7 @@
 services:
   media-api:
     build: .
+    image: media_server
     ports:
       - "6567:6567"
     environment:

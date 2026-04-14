@@ -1,8 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import Depends, FastAPI
+from fastapi.staticfiles import StaticFiles
 
 import app.storage as storage
 from app.auth import verify_token
@@ -34,6 +36,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(objects_router)
+
+_web_client_dir = Path(__file__).parent.parent / "web_client"
+if _web_client_dir.is_dir():
+    app.mount(
+        "/ui",
+        StaticFiles(directory=_web_client_dir, html=True),
+        name="ui",
+    )
 
 
 @app.get("/info", dependencies=[Depends(verify_token)])
